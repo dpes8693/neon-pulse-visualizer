@@ -14,6 +14,7 @@ interface UIProps {
   error: string | null;
   youtubeId: string | null;
   isCapturing: boolean;
+  isMicrophoneMode: boolean;
   hideUI: boolean;
   onToggleUI: () => void;
   particleSettings: ParticleSettings;
@@ -59,6 +60,7 @@ export const UI: React.FC<UIProps> = ({
     error,
     youtubeId,
     isCapturing,
+    isMicrophoneMode,
     hideUI,
     onToggleUI,
     particleSettings,
@@ -371,7 +373,7 @@ export const UI: React.FC<UIProps> = ({
                  <>STATUS: PROCESSING...</>
              ) : (
                  <>
-                    SOURCE: {isCapturing ? 'SYSTEM AUDIO' : (audioName || 'NONE')} <br/>
+                    SOURCE: {isMicrophoneMode ? 'MICROPHONE' : (isCapturing ? 'SYSTEM AUDIO' : (audioName || 'NONE'))} <br/>
                     STATUS: {isPlaying || isCapturing ? 'VISUALIZING >>' : 'READY'}
                  </>
              )}

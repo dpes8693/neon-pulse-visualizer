@@ -19,6 +19,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [youtubeId, setYoutubeId] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isMicrophoneMode, setIsMicrophoneMode] = useState(false);
   const [hideUI, setHideUI] = useState(false);
   const [particleSettings, setParticleSettings] = useState<ParticleSettings>(DEFAULT_PARTICLE_SETTINGS);
   
@@ -84,6 +85,7 @@ const App: React.FC = () => {
     }
     
     setIsCapturing(false);
+    setIsMicrophoneMode(false);
     setAudioState(prev => ({ ...prev, isPlaying: false }));
   };
 
@@ -212,9 +214,35 @@ const App: React.FC = () => {
       setError(null);
       stopAllSources();
       
+      // Check if browser supports getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setError("Your browser does not support microphone access.");
+          return;
+      }
+      
       try {
           const { ctx, analyser } = await getContext();
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          
+          // Ensure AudioContext is running (critical for mobile browsers)
+          if (ctx.state === 'suspended') {
+              await ctx.resume();
+          }
+          
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+              audio: {
+                  // Disable audio processing to capture all sounds including device playback
+                  echoCancellation: false,
+                  noiseSuppression: false,
+                  autoGainControl: false
+              } 
+          });
+          
+          // Check if we got audio tracks
+          const audioTracks = stream.getAudioTracks();
+          if (audioTracks.length === 0) {
+              setError("No audio track found from microphone.");
+              return;
+          }
           
           const source = ctx.createMediaStreamSource(stream);
           source.connect(analyser);
@@ -222,12 +250,25 @@ const App: React.FC = () => {
           
           streamSourceNodeRef.current = source;
           setIsCapturing(true);
+          setIsMicrophoneMode(true);
           setAudioState(prev => ({ ...prev, isPlaying: true, analyser, audioContext: ctx }));
           setAudioName("Microphone Input");
 
-      } catch (e) {
-          console.error(e);
-          setError("Microphone access denied. Please allow permission.");
+      } catch (e: any) {
+          console.error('Microphone error:', e);
+          
+          // Provide more specific error messages
+          if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+              setError("Microphone permission denied. Please allow access in browser settings.");
+          } else if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') {
+              setError("No microphone found on this device.");
+          } else if (e.name === 'NotReadableError' || e.name === 'TrackStartError') {
+              setError("Microphone is being used by another app.");
+          } else if (e.name === 'OverconstrainedError') {
+              setError("Microphone constraints not satisfiable.");
+          } else {
+              setError(`Microphone error: ${e.message || e.name || 'Unknown error'}`);
+          }
       }
   };
 
@@ -246,6 +287,7 @@ const App: React.FC = () => {
         error={error}
         youtubeId={youtubeId}
         isCapturing={isCapturing}
+        isMicrophoneMode={isMicrophoneMode}
         hideUI={hideUI}
         onToggleUI={() => setHideUI(!hideUI)}
         particleSettings={particleSettings}
