@@ -67,6 +67,33 @@ export const UI: React.FC<UIProps> = ({
   const [mode, setMode] = useState<'file' | 'url'>('file');
   const [url, setUrl] = useState('');
   const [showControlPanel, setShowControlPanel] = useState(false);
+  const [showModeConfirm, setShowModeConfirm] = useState<'file' | 'url' | null>(null);
+
+  // Check if there's active audio that would be interrupted
+  const hasActiveAudio = isPlaying || isCapturing || youtubeId;
+
+  const handleModeSwitch = (newMode: 'file' | 'url') => {
+    if (newMode === mode) return;
+    
+    // If there's active audio, show confirmation dialog
+    if (hasActiveAudio) {
+      setShowModeConfirm(newMode);
+    } else {
+      setMode(newMode);
+    }
+  };
+
+  const confirmModeSwitch = () => {
+    if (showModeConfirm) {
+      onReset(); // Reset all audio state
+      setMode(showModeConfirm);
+      setShowModeConfirm(null);
+    }
+  };
+
+  const cancelModeSwitch = () => {
+    setShowModeConfirm(null);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -83,6 +110,62 @@ export const UI: React.FC<UIProps> = ({
 
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-10 flex flex-col justify-between p-6">
+      
+      {/* Mode Switch Confirmation Modal */}
+      {showModeConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={cancelModeSwitch}
+          />
+          
+          {/* Modal */}
+          <div className="relative bg-gray-900 border border-cyan-500/50 rounded-lg p-6 max-w-sm mx-4 shadow-[0_0_30px_rgba(0,255,255,0.3)]">
+            {/* Corner decorations */}
+            <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-cyan-400 -mt-0.5 -ml-0.5"></div>
+            <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-cyan-400 -mt-0.5 -mr-0.5"></div>
+            <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-cyan-400 -mb-0.5 -ml-0.5"></div>
+            <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-cyan-400 -mb-0.5 -mr-0.5"></div>
+            
+            {/* Warning Icon */}
+            <div className="flex justify-center mb-4">
+              <div className="w-12 h-12 rounded-full bg-yellow-500/20 border border-yellow-500 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 text-yellow-500">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+              </div>
+            </div>
+            
+            {/* Title */}
+            <h3 className="text-cyan-400 font-mono text-center text-lg font-bold mb-2">
+              SWITCH MODE?
+            </h3>
+            
+            {/* Message */}
+            <p className="text-gray-400 text-center text-sm font-mono mb-6">
+              <br />
+              <span className="text-gray-500">Current audio will be stopped.</span>
+            </p>
+            
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={cancelModeSwitch}
+                className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-gray-500 text-gray-300 font-mono text-sm rounded transition-colors"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={confirmModeSwitch}
+                className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 border border-cyan-400 text-white font-mono text-sm rounded shadow-[0_0_10px_rgba(0,255,255,0.3)] hover:shadow-[0_0_15px_rgba(0,255,255,0.5)] transition-all"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Control Panel - Bottom Left (Always visible) */}
       <div className="pointer-events-auto fixed bottom-6 left-6 z-30 flex flex-col gap-2">
@@ -224,13 +307,13 @@ export const UI: React.FC<UIProps> = ({
             {/* Mode Switcher */}
             <div className="flex gap-4 text-sm font-mono tracking-widest">
                 <button 
-                    onClick={() => setMode('file')}
+                    onClick={() => handleModeSwitch('file')}
                     className={`pb-1 border-b-2 transition-colors ${mode === 'file' ? 'text-white border-cyan-400' : 'text-gray-500 border-transparent hover:text-cyan-200'}`}
                 >
                     FILE UPLOAD
                 </button>
                 <button 
-                    onClick={() => setMode('url')}
+                    onClick={() => handleModeSwitch('url')}
                     className={`pb-1 border-b-2 transition-colors ${mode === 'url' ? 'text-white border-fuchsia-400' : 'text-gray-500 border-transparent hover:text-fuchsia-200'}`}
                 >
                     YOUTUBE EMBED

@@ -75,6 +75,14 @@ const App: React.FC = () => {
         streamSourceNodeRef.current = null;
     }
     
+    // CRITICAL: Disconnect analyser from destination to prevent audio overlap
+    // when switching between modes (e.g., MP3 -> YouTube capture)
+    if (audioState.analyser) {
+      try {
+        audioState.analyser.disconnect();
+      } catch (e) {}
+    }
+    
     setIsCapturing(false);
     setAudioState(prev => ({ ...prev, isPlaying: false }));
   };
