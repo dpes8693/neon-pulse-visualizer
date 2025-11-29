@@ -1,0 +1,7 @@
+{
+  "name": "Neon Pulse Visualizer",
+  "description": "A high-performance cyberpunk audio visualizer using Three.js and Web Audio API. Features real-time vertex displacement, neon bloom effects, and reactive camera dynamics.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
