@@ -9,11 +9,11 @@ export interface AudioState {
 export type DeformationMode = 'gentle' | 'normal' | 'spiky' | 'blocky' | 'chaotic';
 
 export const DEFORMATION_MODE_LABELS: Record<DeformationMode, string> = {
-  gentle: '🌊 柔和 Gentle',
-  normal: '⚡ 標準 Normal',
-  spiky: '🦔 尖銳 Spiky',
-  blocky: '🧊 方塊 Blocky',
-  chaotic: '🌀 混亂 Chaotic',
+  gentle: '🌊 Gentle',
+  normal: '⚡ Normal',
+  spiky: '🦔 Spiky',
+  blocky: '🧊 Blocky',
+  chaotic: '🌀 Chaotic',
 };
 
 export interface ParticleSettings {
