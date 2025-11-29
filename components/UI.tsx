@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ParticleSettings, DEFAULT_PARTICLE_SETTINGS } from '../types';
+import { ParticleSettings, DEFAULT_PARTICLE_SETTINGS, DeformationMode, DEFORMATION_MODE_LABELS } from '../types';
 
 interface UIProps {
   onFileUpload: (file: File) => void;
@@ -188,6 +188,25 @@ export const UI: React.FC<UIProps> = ({
                 step={0.1}
                 onChange={(v) => onParticleSettingsChange({ ...particleSettings, pulseIntensity: v })}
               />
+              
+              {/* Deformation Mode Dropdown */}
+              <div className="flex flex-col gap-1 mt-2 pt-2 border-t border-fuchsia-500/30">
+                <span className="text-gray-400 text-[10px] font-mono">DEFORMATION MODE</span>
+                <select
+                  value={particleSettings.deformationMode}
+                  onChange={(e) => onParticleSettingsChange({ 
+                    ...particleSettings, 
+                    deformationMode: e.target.value as DeformationMode 
+                  })}
+                  className="w-full bg-gray-900 border border-fuchsia-500/50 text-cyan-400 text-xs font-mono rounded px-2 py-1.5 cursor-pointer focus:outline-none focus:border-cyan-400 hover:border-cyan-400 transition-colors"
+                >
+                  {(Object.keys(DEFORMATION_MODE_LABELS) as DeformationMode[]).map((mode) => (
+                    <option key={mode} value={mode} className="bg-gray-900">
+                      {DEFORMATION_MODE_LABELS[mode]}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         )}

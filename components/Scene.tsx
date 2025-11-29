@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
-import { VisualizerProps, ParticleSettings, DEFAULT_PARTICLE_SETTINGS } from '../types';
+import { VisualizerProps, ParticleSettings, DEFAULT_PARTICLE_SETTINGS, DeformationMode } from '../types';
 
 // Noise gate threshold - values below this are considered noise and ignored
 const NOISE_GATE = 15;
@@ -26,6 +26,7 @@ const MainSphere: React.FC<VisualizerProps> = ({ analyser, particleSettings }) =
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);
   const pulseIntensity = particleSettings?.pulseIntensity ?? DEFAULT_PARTICLE_SETTINGS.pulseIntensity;
+  const deformationMode = particleSettings?.deformationMode ?? DEFAULT_PARTICLE_SETTINGS.deformationMode;
   
   // Store original positions for deformation reference (reduced detail level from 4 to 3)
   const originalPositions = useMemo(() => {
@@ -62,7 +63,7 @@ const MainSphere: React.FC<VisualizerProps> = ({ analyser, particleSettings }) =
       // Time for organic movement
       const time = state.clock.getElapsedTime();
 
-      // Deform geometry
+      // Deform geometry based on selected mode
       for (let i = 0; i < originalPositions.length; i += 3) {
         const x = originalPositions[i];
         const y = originalPositions[i + 1];
@@ -71,20 +72,84 @@ const MainSphere: React.FC<VisualizerProps> = ({ analyser, particleSettings }) =
         // Reuse vector to avoid creating new objects
         tempVector.set(x, y, z).normalize();
 
-        // Create noise-like variation based on position and time
-        const noise = Math.sin(x * 2 + time) * Math.cos(y * 2 + time) * Math.sin(z * 2 + time);
+        const vertexIndex = i / 3;
+        let scale = 1;
 
-        // Map frequency data to vertex
-        const freqIndex = (i / 3) % (dataArray.length / 2); 
-        const audioValue = dataArray[Math.floor(freqIndex)] / 255.0;
-
-        // Displacement logic - amplified by pulseIntensity
-        const displacement = 1 + (audioValue * 0.8 * (mids / 255) * pulseIntensity) + (bass / 255 * 0.2 * pulseIntensity);
-        
-        // Apply "spiky" effect if audio is loud - also scaled by pulseIntensity
-        const spike = audioValue > 0.6 ? audioValue * 0.5 * pulseIntensity : 0;
-
-        const scale = displacement + spike + (noise * 0.05);
+        switch (deformationMode) {
+          case 'gentle': {
+            // 🌊 柔和模式：平滑的波浪起伏，像呼吸一樣
+            const wave1 = Math.sin(time * 0.5 + vertexIndex * 0.02) * 0.15;
+            const wave2 = Math.cos(time * 0.3 + x * 2) * 0.1;
+            const bassInfluence = (bass / 255) * 0.3 * pulseIntensity;
+            scale = 1 + wave1 + wave2 + bassInfluence;
+            break;
+          }
+          
+          case 'normal': {
+            // ⚡ 標準模式：原本的效果
+            const noise = Math.sin(x * 2 + time) * Math.cos(y * 2 + time) * Math.sin(z * 2 + time);
+            const freqIndex = (vertexIndex * 13) % 300;
+            const rawAudioValue = dataArray[freqIndex] / 255.0;
+            const audioValue = Math.pow(rawAudioValue, 2);
+            const displacement = 1 + (audioValue * 1.5 * pulseIntensity) + (bass / 255 * 0.2 * pulseIntensity);
+            const spike = audioValue > 0.5 ? audioValue * 0.8 * pulseIntensity : 0;
+            scale = displacement + spike + (noise * 0.1);
+            break;
+          }
+          
+          case 'spiky': {
+            // 🦔 尖銳模式：劇烈的尖刺突出，像刺蝟
+            const freqIndex = (vertexIndex * 7) % 256;
+            const rawAudioValue = dataArray[freqIndex] / 255.0;
+            // 更陡峭的響應曲線
+            const audioValue = Math.pow(rawAudioValue, 3);
+            // 低閾值觸發尖刺
+            const spike = audioValue > 0.2 ? audioValue * 2.5 * pulseIntensity : 0;
+            // 隨機性增加不規則感
+            const randomSpike = Math.sin(vertexIndex * 123.456) > 0.7 ? audioValue * 1.5 : 0;
+            scale = 1 + spike + randomSpike + (bass / 255 * 0.1);
+            break;
+          }
+          
+          case 'blocky': {
+            // 🧊 方塊模式：量化的階梯式變化，像低解析度
+            const freqIndex = (vertexIndex * 17) % 200;
+            const rawAudioValue = dataArray[freqIndex] / 255.0;
+            // 量化成5個離散級別
+            const quantizedAudio = Math.floor(rawAudioValue * 5) / 5;
+            // 基於位置的區塊分組
+            const blockGroup = Math.floor((x + y + z + 10) * 2) % 4;
+            const blockOffset = blockGroup * 0.1;
+            // 階梯式位移
+            const displacement = 1 + (quantizedAudio * 1.8 * pulseIntensity) + blockOffset;
+            // 加入時間上的量化跳動
+            const timeBlock = Math.floor(time * 4) * 0.25;
+            const pulse = Math.sin(timeBlock + blockGroup) * 0.15 * (bass / 255);
+            scale = displacement + pulse;
+            break;
+          }
+          
+          case 'chaotic': {
+            // 🌀 混亂模式：高噪聲、隨機、劇烈不可預測的變化
+            const freqIndex1 = (vertexIndex * 11) % 256;
+            const freqIndex2 = (vertexIndex * 23) % 256;
+            const audio1 = dataArray[freqIndex1] / 255.0;
+            const audio2 = dataArray[freqIndex2] / 255.0;
+            // 多層噪聲疊加
+            const noise1 = Math.sin(x * 5 + time * 3) * Math.cos(y * 7 + time * 2);
+            const noise2 = Math.sin(z * 3 + time * 4) * Math.sin(vertexIndex + time);
+            const noise3 = Math.cos(x * y * 2 + time * 5);
+            // 高頻震動
+            const vibration = Math.sin(time * 20 + vertexIndex) * 0.1 * audio1;
+            // 爆發性位移
+            const burst = Math.pow(audio1, 1.5) * 2 * pulseIntensity;
+            const secondaryBurst = audio2 * 0.8 * pulseIntensity;
+            // 隨機閃爍
+            const flicker = Math.random() > 0.95 ? 0.5 * pulseIntensity : 0;
+            scale = 1 + burst + secondaryBurst + (noise1 + noise2 + noise3) * 0.3 + vibration + flicker;
+            break;
+          }
+        }
 
         currentPositions[i] = tempVector.x * scale * 2;
         currentPositions[i + 1] = tempVector.y * scale * 2;
