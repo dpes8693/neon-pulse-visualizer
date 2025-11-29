@@ -180,6 +180,14 @@ export const UI: React.FC<UIProps> = ({
                 step={0.05}
                 onChange={(v) => onParticleSettingsChange({ ...particleSettings, opacity: v })}
               />
+              <Slider
+                label="PULSE"
+                value={particleSettings.pulseIntensity}
+                min={0.5}
+                max={5}
+                step={0.1}
+                onChange={(v) => onParticleSettingsChange({ ...particleSettings, pulseIntensity: v })}
+              />
             </div>
           </div>
         )}

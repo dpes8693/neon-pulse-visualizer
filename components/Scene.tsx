@@ -22,9 +22,10 @@ const getFrequencyRangeValue = (data: Uint8Array, low: number, high: number) => 
   return count > 0 ? sum / (high - low) : 0;
 };
 
-const MainSphere: React.FC<VisualizerProps> = ({ analyser }) => {
+const MainSphere: React.FC<VisualizerProps> = ({ analyser, particleSettings }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);
+  const pulseIntensity = particleSettings?.pulseIntensity ?? DEFAULT_PARTICLE_SETTINGS.pulseIntensity;
   
   // Store original positions for deformation reference (reduced detail level from 4 to 3)
   const originalPositions = useMemo(() => {
@@ -77,11 +78,11 @@ const MainSphere: React.FC<VisualizerProps> = ({ analyser }) => {
         const freqIndex = (i / 3) % (dataArray.length / 2); 
         const audioValue = dataArray[Math.floor(freqIndex)] / 255.0;
 
-        // Displacement logic
-        const displacement = 1 + (audioValue * 0.8 * (mids / 255)) + (bass / 255 * 0.1);
+        // Displacement logic - amplified by pulseIntensity
+        const displacement = 1 + (audioValue * 0.8 * (mids / 255) * pulseIntensity) + (bass / 255 * 0.2 * pulseIntensity);
         
-        // Apply "spiky" effect if audio is loud
-        const spike = audioValue > 0.6 ? audioValue * 0.5 : 0;
+        // Apply "spiky" effect if audio is loud - also scaled by pulseIntensity
+        const spike = audioValue > 0.6 ? audioValue * 0.5 * pulseIntensity : 0;
 
         const scale = displacement + spike + (noise * 0.05);
 
@@ -117,9 +118,10 @@ const MainSphere: React.FC<VisualizerProps> = ({ analyser }) => {
   );
 };
 
-const InnerCore: React.FC<VisualizerProps> = ({ analyser }) => {
+const InnerCore: React.FC<VisualizerProps> = ({ analyser, particleSettings }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const dataArray = useMemo(() => new Uint8Array(analyser.frequencyBinCount), [analyser]);
+  const pulseIntensity = particleSettings?.pulseIntensity ?? DEFAULT_PARTICLE_SETTINGS.pulseIntensity;
   
   // Reusable vector for lerp target
   const targetScale = useMemo(() => new THREE.Vector3(), []);
@@ -129,8 +131,8 @@ const InnerCore: React.FC<VisualizerProps> = ({ analyser }) => {
     analyser.getByteFrequencyData(dataArray);
     const bass = getFrequencyRangeValue(dataArray, 0, 20) / 255;
     
-    // Smooth pulse - reuse vector instead of creating new one
-    const scale = 0.8 + (bass * 0.8);
+    // Smooth pulse - reuse vector instead of creating new one, scaled by pulseIntensity
+    const scale = 0.8 + (bass * 0.8 * pulseIntensity);
     targetScale.set(scale, scale, scale);
     meshRef.current.scale.lerp(targetScale, 0.1);
   });
@@ -289,8 +291,8 @@ export const Scene: React.FC<VisualizerProps> = ({ analyser, particleSettings })
       <pointLight position={[-10, -10, -10]} intensity={1} color="#00ffff" />
 
       <group>
-        <MainSphere analyser={analyser} />
-        <InnerCore analyser={analyser} />
+        <MainSphere analyser={analyser} particleSettings={settings} />
+        <InnerCore analyser={analyser} particleSettings={settings} />
         <Particles analyser={analyser} settings={settings} />
       </group>
 

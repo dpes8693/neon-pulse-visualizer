@@ -11,6 +11,7 @@ export interface ParticleSettings {
   speed: number;
   spread: number;
   opacity: number;
+  pulseIntensity: number;
 }
 
 export interface VisualizerProps {
@@ -24,4 +25,5 @@ export const DEFAULT_PARTICLE_SETTINGS: ParticleSettings = {
   speed: 1,
   spread: 15,
   opacity: 0.7,
+  pulseIntensity: 2.0,
 };
