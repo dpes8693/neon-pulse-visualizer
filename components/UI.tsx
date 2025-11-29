@@ -292,6 +292,11 @@ export const UI: React.FC<UIProps> = ({
                   ))}
                 </select>
               </div>
+              
+              {/* Version */}
+              <div className="mt-3 pt-2 border-t border-gray-700 text-center">
+                <span className="text-gray-600 text-[9px] font-mono">v1.1.0</span>
+              </div>
             </div>
           </div>
         )}

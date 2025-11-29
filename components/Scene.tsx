@@ -288,8 +288,10 @@ const Particles: React.FC<ParticlesProps> = ({ analyser, settings }) => {
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
   });
 
+  // Use key to force React to recreate the points when count or spread changes
+  // This prevents THREE.js buffer resize errors
   return (
-    <points ref={pointsRef}>
+    <points ref={pointsRef} key={`particles-${settings.count}-${settings.spread}`}>
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
